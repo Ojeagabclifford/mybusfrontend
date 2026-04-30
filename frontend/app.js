@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000";
+const API_URL = "https://mybus-7qti.onrender.com";
 
 // State Management for Editing
 let currentEditId = null;
