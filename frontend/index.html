@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cliffordbx Tec | Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <nav>
+        <h1>Cliffordbx Tec Admin</h1>
+        <div class="stats-bar">
+            <span>Live Status: <strong id="nav-profit">₦0</strong></span>
+        </div>
+    </nav>
+
+    <section class="summary-grid">
+        <div class="stat-card">
+            <label>Gross Income</label>
+            <h2 id="gross-income">₦0</h2>
+        </div>
+        <div class="stat-card">
+            <label>Total Expenses</label>
+            <h2 id="total-expenses" style="color: #f87171;">₦0</h2>
+        </div>
+        <div class="stat-card">
+            <label>Net Tithes (10%)</label>
+            <h2 id="total-tithes" style="color: #fbbf24;">₦0</h2>
+        </div>
+        <div class="stat-card highlight">
+            <label>Final Net Profit</label>
+            <h2 id="net-profit">₦0</h2>
+        </div>
+    </section>
+
+    <main>
+        <section class="form-container">
+            <h3>Add New Entry</h3>
+            <form id="business-form">
+                <select id="entry-type" required>
+                    <option value="transaction">Income (Repair/Sale)</option>
+                    <option value="expense">Expense (Data/Rent)</option>
+                </select>
+                
+                <input type="text" id="description" placeholder="Description (e.g. Screen Fix)" required>
+                
+                <select id="sub-type">
+                    </select>
+                
+                <input type="number" id="amount" placeholder="Amount (₦)" required>
+                <button type="submit">Save Entry</button>
+            </form>
+        </section>
+
+        <section class="display-container">
+            <div class="tabs">
+                <button onclick="loadData('transaction')">Income Log</button>
+                <button onclick="loadData('expense')">Expense Log</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="data-table">
+                    <thead>
+                        <tr id="table-head">
+                            </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h3>Update Cliffordbx Record</h3>
+            <input type="text" id="edit-description" placeholder="Description">
+            <input type="number" id="edit-amount" placeholder="Amount">
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button class="btn-save" id="save-edit-btn">Update Record</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

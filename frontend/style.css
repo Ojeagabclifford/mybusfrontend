@@ -1,0 +1,354 @@
+/* --- 1. CORE VARIABLES --- */
+:root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --text-primary: #f8fafc;
+    --accent: #38bdf8;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #fbbf24;
+    --border: #334155;
+}
+
+/* --- 2. GLOBAL RESET --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+/* --- Updated Main Layout --- */
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 350px 1fr; /* Fixed width for form, flexible for table */
+    gap: 2rem;
+    align-items: start;
+}
+
+/* This prevents containers from stretching or overlapping */
+.form-container, 
+.display-container {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    width: 100%;       /* Ensure they take full width of their grid cell */
+    min-width: 0;      /* CRITICAL: Prevents content from pushing the box wider than the screen */
+    box-sizing: border-box;
+}
+
+/* --- The Mobile Fix (Overlapping happens here) --- */
+@media (max-width: 900px) {
+    main {
+        grid-template-columns: 1fr; /* Switch to 1 column so they don't sit side-by-side */
+        gap: 1.5rem;
+    }
+
+    .form-container, 
+    .display-container {
+        width: 100% !important;
+        max-width: 100%;
+    }
+
+    /* Force the table to stay inside the display-container */
+    .table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        display: block;
+    }
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+/* --- 3. NAVIGATION & HEADER --- */
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: var(--card-bg);
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border);
+}
+
+.stats-bar strong {
+    color: var(--success);
+    font-size: 1.2rem;
+}
+
+/* --- 4. ANALYTICS SUMMARY CARDS --- */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 2rem;
+    max-width: 1200px;
+    margin-inline: auto;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.stat-card:hover { 
+    transform: translateY(-3px); 
+}
+
+.stat-card label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-card h2 {
+    margin: 10px 0 0 0;
+    font-size: 1.6rem;
+    color: var(--accent);
+}
+
+.stat-card.highlight {
+    border: 1px solid var(--accent);
+    background: rgba(56, 189, 248, 0.05);
+}
+
+/* --- 5. MAIN DASHBOARD LAYOUT --- */
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 2rem;
+}
+
+.form-container, .display-container {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+/* --- 6. FORMS & INPUTS --- */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+input, select {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-color);
+    color: white;
+    outline: none;
+}
+
+input:focus, select:focus { 
+    border-color: var(--accent); 
+}
+
+button {
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+    transition: 0.3s;
+}
+
+button[type="submit"] {
+    background: var(--accent);
+    color: var(--bg-color);
+}
+
+button[type="submit"]:hover { 
+    background: #7dd3fc; 
+}
+
+/* --- 7. TABS & TABLE --- */
+.tabs {
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 10px;
+}
+
+.tabs button {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--accent);
+    padding: 8px 16px;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    margin-top: 1rem;
+    border-radius: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+}
+
+th, td {
+    text-align: left;
+    padding: 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+th { 
+    color: var(--accent); 
+    text-transform: uppercase; 
+    font-size: 0.8rem; 
+}
+
+/* --- 8. ACTION BUTTONS (EDIT/DELETE) --- */
+td:last-child {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-edit, .btn-delete {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    border: 1px solid transparent;
+}
+
+.btn-edit {
+    background: rgba(234, 179, 8, 0.15);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+.btn-edit:hover { 
+    background: var(--warning); 
+    color: #000; 
+}
+
+.btn-delete {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid var(--danger);
+}
+
+.btn-delete:hover { 
+    background: var(--danger); 
+    color: white; 
+}
+
+/* --- 9. MODAL STYLING --- */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    border: 1px solid var(--border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h3 { 
+    margin-bottom: 1.5rem; 
+    text-align: center;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+.btn-cancel { 
+    background: #334155; 
+    color: white; 
+}
+
+.btn-save { 
+    background: var(--success); 
+    color: white; 
+}
+
+/* --- 10. TOAST NOTIFICATIONS --- */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    padding: 12px 24px;
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    z-index: 3000;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.4);
+    animation: slideUp 0.4s ease forwards;
+    transition: opacity 0.5s;
+}
+
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+
+@keyframes slideUp {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* --- 11. MOBILE RESPONSIVENESS (PHONES) --- */
+@media (max-width: 768px) {
+    body { padding: 10px; }
+
+    main { grid-template-columns: 1fr; }
+
+    nav {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+        padding: 1rem;
+    }
+
+    .summary-grid {
+        grid-template-columns: 1fr 1fr; /* 2 stats per row on mobile */
+    }
+
+    .stat-card h2 {
+        font-size: 1.2rem;
+    }
+
+    .display-container {
+        padding: 10px;
+    }
+
+    th, td {
+        padding: 10px 8px;
+        font-size: 0.85rem;
+    }
+
+    .btn-edit, .btn-delete {
+        padding: 8px 10px;
+    }
+}
