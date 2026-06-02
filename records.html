@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cliffordbx Tec | Records</title>
+    <link rel="stylesheet" href="./frontend/style.css">
+</head>
+<body>
+    <nav class="topbar">
+        <div class="brand">
+            <span class="brand-tag">Cliffordbx Tec</span>
+            <h1>Records</h1>
+            <p class="brand-subtitle">Search and browse all income and expense log entries.</p>
+        </div>
+        <div class="stats-bar">
+            <a href="index.html" class="nav-link">Dashboard</a>
+            <a href="entry.html" class="nav-link">Add Entry</a>
+        </div>
+    </nav>
+
+    <main>
+        <section class="display-container">
+            <div class="tabs">
+                <button data-type="transaction" onclick="loadData('transaction')">Income Log</button>
+                <button data-type="expense" onclick="loadData('expense')">Expense Log</button>
+            </div>
+            <div class="filter-panel">
+                <input type="search" id="search-query" placeholder="Search records by name, category or amount">
+                <div class="date-filters">
+                    <div class="field-group">
+                        <label for="filter-from">From</label>
+                        <input type="date" id="filter-from">
+                    </div>
+                    <div class="field-group">
+                        <label for="filter-to">To</label>
+                        <input type="date" id="filter-to">
+                    </div>
+                </div>
+            </div>
+            <div class="record-summary-grid">
+                <div class="record-card">
+                    <span>Total Records</span>
+                    <strong id="summary-record-count">0</strong>
+                </div>
+                <div class="record-card">
+                    <span>Total Amount</span>
+                    <strong id="summary-total-amount">₦0</strong>
+                </div>
+                <div class="record-card transaction-only">
+                    <span>Total Tithe</span>
+                    <strong id="summary-total-tithe">₦0</strong>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table id="data-table">
+                    <thead>
+                        <tr id="table-head"></tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
+            <div class="pagination-bar" id="pagination-bar"></div>
+        </section>
+    </main>
+
+    <div class="modal" id="edit-modal">
+        <div class="modal-content">
+            <h3>Edit record</h3>
+            <div class="field-group">
+                <label for="edit-description">Description / Item</label>
+                <input type="text" id="edit-description" placeholder="Enter description or item">
+            </div>
+            <div class="field-group">
+                <label for="edit-amount">Amount</label>
+                <input type="number" id="edit-amount" placeholder="Enter amount">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+                <button type="button" id="save-edit-btn" class="btn-save">Save</button>
+            </div>
+        </div>
+    </div>
+    <script src="./frontend/app.js"></script>
+</body>
+</html>

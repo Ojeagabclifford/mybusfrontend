@@ -4,14 +4,34 @@ const API_URL = "https://mybus-7qti.onrender.com";
 let currentEditId = null;
 let currentEditType = null;
 let currentEditSubtype = null;
+let currentDataType = 'transaction';
+let currentPage = 1;
+const pageSize = 6;
+let currentSearch = '';
+let currentFromDate = '';
+let currentToDate = '';
+let currentData = [];
 
 // Element Selectors
 const form = document.getElementById('business-form');
 const entryType = document.getElementById('entry-type');
 const subType = document.getElementById('sub-type');
+const paidTithesInput = document.getElementById('paid-tithes-input');
+const savePaidTitheBtn = document.getElementById('save-paid-tithe-btn');
+const resetPaidTitheBtn = document.getElementById('reset-paid-tithe-btn');
+const searchInput = document.getElementById('search-query');
+const filterFromInput = document.getElementById('filter-from');
+const filterToInput = document.getElementById('filter-to');
+const paginationBar = document.getElementById('pagination-bar');
+const tabButtons = document.querySelectorAll('.tabs button');
+const summaryRecordCount = document.getElementById('summary-record-count');
+const summaryTotalAmount = document.getElementById('summary-total-amount');
+const summaryTotalTithe = document.getElementById('summary-total-tithe');
+const summaryTitheCard = document.querySelector('.transaction-only');
 
 // --- 1. DYNAMIC UI LOGIC ---
 const updateOptions = () => {
+    if (!entryType || !subType) return;
     if (entryType.value === 'transaction') {
         subType.innerHTML = `
             <option value="Repair">Repair</option>
@@ -28,8 +48,6 @@ const updateOptions = () => {
         `;
     }
 };
-
-entryType.addEventListener('change', updateOptions);
 
 function validateAmount(amount) {
     return !Number.isNaN(amount) && amount > 0;
@@ -58,10 +76,42 @@ function validateEntry(type, description, amount, subtype) {
     return true;
 }
 
+function getPaidTithes() {
+    const amount = Number(localStorage.getItem('paidTithes') || 0);
+    return Number.isNaN(amount) ? 0 : amount;
+}
+
+function setPaidTithes(amount) {
+    localStorage.setItem('paidTithes', amount);
+}
+
+function clearPaidTithes() {
+    localStorage.removeItem('paidTithes');
+}
+
+savePaidTitheBtn?.addEventListener('click', () => {
+    const amount = Number(paidTithesInput.value);
+    if (!validateAmount(amount)) {
+        showToast('Enter a valid paid tithe amount.', 'error');
+        return;
+    }
+
+    setPaidTithes(amount);
+    showToast('Paid tithe updated.', 'success');
+    calculateNetProfit();
+});
+
+resetPaidTitheBtn?.addEventListener('click', () => {
+    clearPaidTithes();
+    paidTithesInput.value = '';
+    showToast('Paid tithe reset.', 'success');
+    calculateNetProfit();
+});
+
 // --- 2. CREATE (POST) LOGIC ---
-form.addEventListener('submit', async (e) => {
+form?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const type = entryType.value;
+    const type = entryType?.value || 'transaction';
     const path = type === 'transaction' ? '/transaction' : '/expenses';
     const description = document.getElementById('description').value.trim();
     const amount = Number(document.getElementById('amount').value);
@@ -103,39 +153,149 @@ form.addEventListener('submit', async (e) => {
 });
 
 // --- 3. READ (GET) LOGIC ---
-async function loadData(type) {
+async function loadData(type, resetPage = true) {
+    currentDataType = type;
+    if (resetPage) currentPage = 1;
     const path = type === 'transaction' ? '/transaction' : '/expenses';
     const tbody = document.getElementById('table-body');
     const thead = document.getElementById('table-head');
-    
-    tbody.innerHTML = "<tr><td colspan='6'>Loading records...</td></tr>";
+    const table = document.getElementById('data-table');
+
+    tbody.innerHTML = `<tr><td colspan='${type === 'transaction' ? 6 : 5}'>Loading records...</td></tr>`;
 
     try {
         const res = await fetch(`${API_URL}${path}`);
         const result = await res.json();
-        const data = result.data || result;
+        currentData = result.data || result || [];
 
         thead.innerHTML = type === 'transaction' 
             ? `<th>Date</th><th>Info</th><th>Type</th><th>Amount</th><th>Tithe</th><th>Actions</th>`
             : `<th>Date</th><th>Item</th><th>Category</th><th>Amount</th><th>Actions</th>`;
 
-        tbody.innerHTML = data.map(item => `
+        updateActiveTab();
+        renderTable();
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan='${type === 'transaction' ? 6 : 5}'>Error loading data.</td></tr>`;
+        paginationBar.innerHTML = '';
+    }
+}
+
+function updateActiveTab() {
+    tabButtons.forEach(button => {
+        button.classList.toggle('active-tab', button.dataset.type === currentDataType);
+    });
+}
+
+function applyFilters(data) {
+    const query = currentSearch.trim().toLowerCase();
+    const from = filterFromInput.value ? new Date(filterFromInput.value) : null;
+    const to = filterToInput.value ? new Date(filterToInput.value) : null;
+    if (to) {
+        to.setHours(23, 59, 59, 999);
+    }
+
+    return data.filter(item => {
+        const itemDate = item.date ? new Date(item.date) : null;
+        if (from && itemDate && itemDate < from) return false;
+        if (to && itemDate && itemDate > to) return false;
+
+        if (!query) return true;
+        const values = [
+            item.description || item.item || '',
+            item.transactionType || item.category || '',
+            item.amount?.toString() || ''
+        ].join(' ').toLowerCase();
+
+        return values.includes(query);
+    });
+}
+
+function renderTable() {
+    const tbody = document.getElementById('table-body');
+    const filteredData = applyFilters(currentData);
+    const totalPages = Math.max(Math.ceil(filteredData.length / pageSize), 1);
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const pageData = filteredData.slice(startIndex, startIndex + pageSize);
+
+    if (pageData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan='${currentDataType === 'transaction' ? 6 : 5}'>No records found.</td></tr>`;
+    } else {
+        tbody.innerHTML = pageData.map(item => `
             <tr>
                 <td>${new Date(item.date).toLocaleDateString()}</td>
                 <td>${item.description || item.item}</td>
                 <td>${item.transactionType || item.category}</td>
                 <td>₦${Number(item.amount).toLocaleString()}</td>
-                ${type === 'transaction' ? `<td>₦${Number(item.tithe).toLocaleString()}</td>` : ''}
+                ${currentDataType === 'transaction' ? `<td>₦${Number(item.tithe).toLocaleString()}</td>` : ''}
                 <td>
-                    <button class="btn-edit" onclick="openEditModal('${item._id}', '${type}')">Edit</button>
-                    <button class="btn-delete" onclick="deleteEntry('${item._id}', '${type}')">Delete</button>
+                    <button class="btn-edit" onclick="openEditModal('${item._id}', '${currentDataType}')">Edit</button>
+                    <button class="btn-delete" onclick="deleteEntry('${item._id}', '${currentDataType}')">Delete</button>
                 </td>
             </tr>
         `).join('');
-    } catch (err) {
-        tbody.innerHTML = "<tr><td colspan='6'>Error loading data.</td></tr>";
     }
+
+    renderPagination(totalPages);
+    updateRecordSummary(filteredData);
 }
+
+function updateRecordSummary(filteredData) {
+    const recordCount = filteredData.length;
+    const totalAmount = filteredData.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const totalTithe = filteredData.reduce((sum, item) => sum + Number(item.tithe || 0), 0);
+
+    if (summaryRecordCount) summaryRecordCount.innerText = recordCount;
+    if (summaryTotalAmount) summaryTotalAmount.innerText = `₦${totalAmount.toLocaleString()}`;
+    if (summaryTotalTithe) summaryTotalTithe.innerText = `₦${totalTithe.toLocaleString()}`;
+    if (summaryTitheCard) summaryTitheCard.style.display = currentDataType === 'transaction' ? 'block' : 'none';
+}
+
+function renderPagination(totalPages) {
+    if (!paginationBar) return;
+
+    paginationBar.innerHTML = `
+        <button class="pagination-btn" data-action="prev" ${currentPage === 1 ? 'disabled' : ''}>Prev</button>
+        <span>Page ${currentPage} of ${totalPages}</span>
+        <button class="pagination-btn" data-action="next" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+    `;
+}
+
+paginationBar?.addEventListener('click', (event) => {
+    const action = event.target.dataset.action;
+    if (!action) return;
+
+    const filteredData = applyFilters(currentData);
+    const totalPages = Math.max(Math.ceil(filteredData.length / pageSize), 1);
+
+    if (action === 'prev' && currentPage > 1) {
+        currentPage -= 1;
+        renderTable();
+    }
+    if (action === 'next' && currentPage < totalPages) {
+        currentPage += 1;
+        renderTable();
+    }
+});
+
+searchInput?.addEventListener('input', (event) => {
+    currentSearch = event.target.value;
+    currentPage = 1;
+    renderTable();
+});
+
+filterFromInput?.addEventListener('change', (event) => {
+    currentFromDate = event.target.value;
+    currentPage = 1;
+    renderTable();
+});
+
+filterToInput?.addEventListener('change', (event) => {
+    currentToDate = event.target.value;
+    currentPage = 1;
+    renderTable();
+});
 
 // --- 4. UPDATE (PUT) LOGIC ---
 async function openEditModal(id, type) {
@@ -148,21 +308,30 @@ async function openEditModal(id, type) {
         const result = await res.json();
         const item = result.data || result;
 
-        document.getElementById('edit-description').value = item.description || item.item;
-        document.getElementById('edit-amount').value = item.amount;
+        const editDescriptionEl = document.getElementById('edit-description');
+        const editAmountEl = document.getElementById('edit-amount');
+        const editModalEl = document.getElementById('edit-modal');
+
+        if (editDescriptionEl) editDescriptionEl.value = item.description || item.item;
+        if (editAmountEl) editAmountEl.value = item.amount;
         currentEditSubtype = item.transactionType || item.category;
-        document.getElementById('edit-modal').style.display = 'flex';
+        if (editModalEl) editModalEl.style.display = 'flex';
     } catch (err) {
         showToast("Could not load data", "error");
     }
 }
 
-document.getElementById('save-edit-btn').onclick = async () => {
+const saveEditBtn = document.getElementById('save-edit-btn');
+saveEditBtn?.addEventListener('click', async () => {
     const path = currentEditType === 'transaction' ? '/transaction' : '/expenses';
-    const updatedData = { amount: Number(document.getElementById('edit-amount').value) };
+    const editDescriptionEl = document.getElementById('edit-description');
+    const editAmountEl = document.getElementById('edit-amount');
 
-    const editDescription = document.getElementById('edit-description').value.trim();
-    const editAmount = Number(document.getElementById('edit-amount').value);
+    if (!editDescriptionEl || !editAmountEl) return;
+
+    const updatedData = { amount: Number(editAmountEl.value) };
+    const editDescription = editDescriptionEl.value.trim();
+    const editAmount = Number(editAmountEl.value);
     const editSubtype = currentEditSubtype;
 
     if (!validateEntry(currentEditType, editDescription, editAmount, editSubtype)) {
@@ -193,10 +362,11 @@ document.getElementById('save-edit-btn').onclick = async () => {
     } catch (err) {
         showToast("Update failed", "error");
     }
-};
+});
 
 function closeModal() {
-    document.getElementById('edit-modal').style.display = 'none';
+    const editModalEl = document.getElementById('edit-modal');
+    if (editModalEl) editModalEl.style.display = 'none';
 }
 
 // --- 5. DELETE LOGIC ---
@@ -221,6 +391,9 @@ async function calculateNetProfit() {
     const totalTithesEl = document.getElementById('total-tithes');
     const netProfitEl = document.getElementById('net-profit');
     const navProfitEl = document.getElementById('nav-profit');
+    const insightTotalTitheEl = document.getElementById('insight-total-tithe');
+    const insightPaidTitheEl = document.getElementById('insight-paid-tithe');
+    const insightRemainingTitheEl = document.getElementById('insight-remaining-tithe');
 
     try {
         const [incomeRes, expenseRes] = await Promise.all([
@@ -239,24 +412,41 @@ async function calculateNetProfit() {
         const netIncomeBeforeTithe = grossIncome - totalExpenses;
         const totalTithes = netIncomeBeforeTithe > 0 ? Math.round(netIncomeBeforeTithe * 0.1) : 0;
 
+        const paidTithes = getPaidTithes();
+        const remainingTithes = Math.max(totalTithes - paidTithes, 0);
         const netProfit = netIncomeBeforeTithe - totalTithes;
 
-        grossIncomeEl.innerText = `₦${grossIncome.toLocaleString()}`;
-        totalExpensesEl.innerText = `₦${totalExpenses.toLocaleString()}`;
-        totalTithesEl.innerText = `₦${totalTithes.toLocaleString()}`;
-        netProfitEl.innerText = `₦${netProfit.toLocaleString()}`;
-        navProfitEl.innerText = `₦${netProfit.toLocaleString()}`;
+        if (grossIncomeEl) grossIncomeEl.innerText = `₦${grossIncome.toLocaleString()}`;
+        if (totalExpensesEl) totalExpensesEl.innerText = `₦${totalExpenses.toLocaleString()}`;
+        if (totalTithesEl) totalTithesEl.innerText = `₦${totalTithes.toLocaleString()}`;
+        setText('paid-tithes', `₦${paidTithes.toLocaleString()}`);
+        setText('remaining-tithes', `₦${remainingTithes.toLocaleString()}`);
+        if (netProfitEl) netProfitEl.innerText = `₦${netProfit.toLocaleString()}`;
+        if (navProfitEl) navProfitEl.innerText = `₦${netProfit.toLocaleString()}`;
+        if (insightTotalTitheEl) insightTotalTitheEl.innerText = `₦${totalTithes.toLocaleString()}`;
+        if (insightPaidTitheEl) insightPaidTitheEl.innerText = `₦${paidTithes.toLocaleString()}`;
+        if (insightRemainingTitheEl) insightRemainingTitheEl.innerText = `₦${remainingTithes.toLocaleString()}`;
     } catch (err) {
         console.error('Profit calculation failed', err);
-        grossIncomeEl.innerText = '₦0';
-        totalExpensesEl.innerText = '₦0';
-        totalTithesEl.innerText = '₦0';
-        netProfitEl.innerText = '₦0';
-        navProfitEl.innerText = '₦0';
+        if (grossIncomeEl) grossIncomeEl.innerText = '₦0';
+        if (totalExpensesEl) totalExpensesEl.innerText = '₦0';
+        if (totalTithesEl) totalTithesEl.innerText = '₦0';
+        setText('paid-tithes', '₦0');
+        setText('remaining-tithes', '₦0');
+        if (netProfitEl) netProfitEl.innerText = '₦0';
+        if (navProfitEl) navProfitEl.innerText = '₦0';
+        if (insightTotalTitheEl) insightTotalTitheEl.innerText = '₦0';
+        if (insightPaidTitheEl) insightPaidTitheEl.innerText = '₦0';
+        if (insightRemainingTitheEl) insightRemainingTitheEl.innerText = '₦0';
     }
 }
 
 // --- 7. UTILS ---
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = value;
+}
+
 function showToast(msg, type) {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
@@ -268,7 +458,17 @@ function showToast(msg, type) {
     }, 3000);
 }
 
-// Start
-updateOptions();
-loadData('transaction');
-calculateNetProfit();
+function initApp() {
+    if (entryType) {
+        updateOptions();
+        entryType.addEventListener('change', updateOptions);
+    }
+
+    if (document.getElementById('table-body')) {
+        loadData(currentDataType);
+    }
+
+    calculateNetProfit();
+}
+
+document.addEventListener('DOMContentLoaded', initApp);
